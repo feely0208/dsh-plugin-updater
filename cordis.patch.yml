@@ -1,0 +1,4 @@
+# @deepwhale-cn/dsh-plugin-updater 的组合层
+- insert:
+    - id: plugin-updater
+      name: '@deepwhale-cn/dsh-plugin-updater'
