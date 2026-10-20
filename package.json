@@ -1,6 +1,6 @@
 {
   "name": "@deepwhale-cn/dsh-plugin-updater",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "检查并更新第三方 DSH 插件：对比 npm 最新版本，一条命令精确升级（绕过 pnpm 新版本观察期）",
   "type": "module",
   "main": "./lib/index.js",
@@ -8,6 +8,7 @@
     ".": {
       "default": "./lib/index.js"
     },
+    "./client": "./lib/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
@@ -45,6 +46,10 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
     }
   },
   "meta": {

@@ -112,11 +112,15 @@ test('runPnpmAdd 用 --save-exact 精确版本（绕过 pnpm 观察期）', asyn
 test('apply() 注册 check / apply 两个工具，并能在工具里跑一次检查', async () => {
   const dir = makeProfile();
   const registered = [];
+  const routes = [];
   const ctx = {
     profileContext: { dir },
     tools: { register: (tool) => registered.push(tool) },
+    webServer: { register: (route) => { routes.push(route); return () => {}; } },
+    effect: (fn) => { fn(); return () => {}; },
   };
   apply(ctx);
+  assert.equal(routes.length, 2, 'check / apply 两个 HTTP 路由');
   assert.deepEqual(
     registered.map((t) => t.name),
     ['plugin_update_check', 'plugin_update_apply'],
@@ -137,7 +141,13 @@ test('apply() 注册 check / apply 两个工具，并能在工具里跑一次检
 test('apply 工具 dry_run 不执行安装', async () => {
   const dir = makeProfile();
   const registered = [];
-  const ctx = { profileContext: { dir }, tools: { register: (tool) => registered.push(tool) } };
+  const routes = [];
+  const ctx = {
+    profileContext: { dir },
+    tools: { register: (tool) => registered.push(tool) },
+    webServer: { register: (route) => { routes.push(route); return () => {}; } },
+    effect: (fn) => { fn(); return () => {}; },
+  };
   apply(ctx);
   const prevFetch = globalThis.fetch;
   globalThis.fetch = async () => ({ ok: true, json: async () => ({ 'dist-tags': { latest: '0.1.1' } }) });
@@ -148,4 +158,63 @@ test('apply 工具 dry_run 不执行安装', async () => {
   } finally {
     globalThis.fetch = prevFetch;
   }
+});
+
+test('HTTP 路由：GET /plugin-updater/check 返回可更新行', async () => {
+  const dir = makeProfile();
+  const routes = [];
+  apply({
+    profileContext: { dir },
+    tools: { register: () => {} },
+    webServer: { register: (route) => { routes.push(route); return () => {}; } },
+    effect: (fn) => { fn(); return () => {}; },
+  });
+  const route = routes.find((r) => r.path === '/plugin-updater/check');
+  assert.ok(route, '注册了 check 路由');
+  const res = { headersSent: false, writeHead(status, headers) { this.status = status; this.headers = headers; this.headersSent = true; }, end(body) { this.body = body; } };
+  const prevFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ 'dist-tags': { latest: '0.1.1' } }) });
+  try {
+    await route.handler({ method: 'GET' }, res);
+  } finally {
+    globalThis.fetch = prevFetch;
+  }
+  const parsed = JSON.parse(res.body);
+  assert.equal(res.status, 200);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.rows.length, 1);
+  assert.equal(parsed.rows[0].updateAvailable, true);
+});
+
+test('HTTP 路由：apply 只接受 POST，dryRun 不安装', async () => {
+  const dir = makeProfile();
+  const routes = [];
+  apply({
+    profileContext: { dir },
+    tools: { register: () => {} },
+    webServer: { register: (route) => { routes.push(route); return () => {}; } },
+    effect: (fn) => { fn(); return () => {}; },
+  });
+  const route = routes.find((r) => r.path === '/plugin-updater/apply');
+  const mkRes = () => ({ headersSent: false, writeHead(status) { this.status = status; this.headersSent = true; }, end(body) { this.body = body; } });
+  const getRes = mkRes();
+  await route.handler({ method: 'GET' }, getRes);
+  assert.equal(getRes.status, 405);
+
+  const req = () => {
+    const body = Buffer.from(JSON.stringify({ names: ['@deepwhale-cn/dsh-badge'], dryRun: true }));
+    return { method: 'POST', async *[Symbol.asyncIterator]() { yield body; } };
+  };
+  const res = mkRes();
+  const prevFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({ 'dist-tags': { latest: '0.1.1' } }) });
+  try {
+    await route.handler(req(), res);
+  } finally {
+    globalThis.fetch = prevFetch;
+  }
+  const parsed = JSON.parse(res.body);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.targets.length, 1);
+  assert.equal(parsed.results.length, 0);
 });
