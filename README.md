@@ -53,3 +53,7 @@ MIT © 温州深鲸智能科技有限公司
 - 按钮可**拖动**；点「×」只收起面板，入口不会消失（插件页右下角一直在）
 
 界面通过同源 HTTP 路由（`/plugin-updater/check`、`/plugin-updater/apply`）调用本插件的宿主半边，安装判据与动作仍在宿主侧。
+
+---
+
+<p align="right"><a href="https://deepwhale.org.cn"><img src="https://www.deepwhale.org.cn/images/badge/deepwhale-badge.png" alt="powered by dwh" height="20"></a></p>
