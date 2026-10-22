@@ -1,7 +1,7 @@
 {
   "name": "@deepwhale-cn/dsh-plugin-updater",
-  "version": "0.2.4",
-  "description": "检查并更新第三方 DSH 插件：对比 npm 最新版本，一条命令精确升级（绕过 pnpm 新版本观察期）",
+  "version": "0.3.0",
+  "description": "检查并更新第三方 DSH 插件：对比 npm 最新版本，精确升级（绕过 pnpm 新版本观察期）。0.3.0 起不再注入界面，仅提供 agent 工具。",
   "type": "module",
   "main": "./lib/index.js",
   "exports": {
